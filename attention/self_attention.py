@@ -1,5 +1,5 @@
-from torch.nn import Module, Linear, Dropout
-from torch import softmax, triu, ones, bool, inf
+from torch.nn import Module, Linear, Dropout, ModuleList
+from torch import softmax, triu, ones, bool, inf, cat
 
 class CasualAttention(Module):
     def __init__(self, d_in, d_out, context_length, dropout):
@@ -33,7 +33,7 @@ class CasualAttention(Module):
         values = self.value(x)
 
         attn_scores = queries @ keys.transpose(1, 2) # keep the batch dimension at 0
-        attn_scores.mask_fill_( # trailing underscore -> in-place
+        attn_scores.masked_fill_( # trailing underscore -> in-place
             self.mask[:context_length, :context_length],
             -inf
         )
@@ -46,3 +46,21 @@ class CasualAttention(Module):
 
         context_vec = attn_weights @ values
         return context_vec
+
+
+class MultiheadAttentionWrapper(Module):
+    def __init__(self, d_in, d_out, context_length, dropout, n_heads):
+        super().__init__()
+        self.heads = ModuleList([
+            CasualAttention(d_in, d_out, context_length, dropout)
+            for _ in range(n_heads)
+        ])
+
+    def forward(self, x):
+        return cat(
+            [
+                head(x) 
+                for head in self.heads
+            ],
+            dim=-1
+        )
