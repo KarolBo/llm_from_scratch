@@ -14,7 +14,7 @@ class GPTModel(torch.nn.Module):
         
         self.transformer_blocks = torch.nn.Sequential(
             *[
-                DummyTransformerBlock(config) 
+                TransformerBlock(config) 
                 for _ in range(config.n_layers)
             ]
         )
