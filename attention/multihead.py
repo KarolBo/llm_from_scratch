@@ -3,7 +3,7 @@ from torch import triu, ones, bool, inf, softmax
 
 
 class MultiheadAttention(Module):
-    def __init__(self, d_in, d_out, context_length, dropout, n_heads):
+    def __init__(self, d_in, d_out, context_length, dropout, n_heads, qkv_bias=False):
         super().__init__()
         assert d_out % n_heads == 0, "d_out must be divisible by n_heads"
 
@@ -11,11 +11,11 @@ class MultiheadAttention(Module):
         self.n_heads = n_heads
         self.head_dim = d_out // n_heads
 
-        self.query = Linear(d_in, d_out, bias=False)
-        self.key = Linear(d_in, d_out, bias=False)
-        self.value = Linear(d_in, d_out, bias=False)
+        self.query = Linear(d_in, d_out, bias=qkv_bias)
+        self.key = Linear(d_in, d_out, bias=qkv_bias)
+        self.value = Linear(d_in, d_out, bias=qkv_bias)
 
-        self.out_proj = Linear(d_out, d_out)
+        self.output_layer = Linear(d_out, d_out)
         self.dropout = Dropout(dropout)
 
         self.register_buffer(
@@ -57,6 +57,6 @@ class MultiheadAttention(Module):
         context_vec = context_vec.contiguous().view(
             batch_size, context_length, self.head_dim * self.n_heads
         )
-        context_vec = self.out_proj(context_vec)
+        context_vec = self.output_layer(context_vec)
 
         return context_vec
